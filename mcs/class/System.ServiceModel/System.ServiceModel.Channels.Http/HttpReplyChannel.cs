@@ -168,13 +168,17 @@ namespace System.ServiceModel.Channels.Http
 
 			Message msg = null;
 
-			if (ctxi.Request.HttpMethod == "POST")
-				msg = CreatePostMessage (ctxi);
-			else if (ctxi.Request.HttpMethod == "GET")
-				msg = Message.CreateMessage (MessageVersion.None, null); // HTTP GET-based request
+            if (ctxi.Request.HttpMethod == "POST")
+                msg = CreatePostMessage (ctxi);
+            else if (ctxi.Request.HttpMethod == "GET")
+                msg = Message.CreateMessage (MessageVersion.None, null); // HTTP GET-based request
 
 			if (msg == null)
 				return false;
+
+            if (msg.IsFault) {
+                ctxi.Response.StatusCode = 500;
+            }
 
 			if (msg.Headers.To == null)
 				msg.Headers.To = ctxi.Request.Url;
@@ -227,8 +231,15 @@ namespace System.ServiceModel.Channels.Http
 			var msg = Encoder.ReadMessage (
 				stream, maxSizeOfHeaders, ctxi.Request.ContentType);
 #else
-			var msg = Encoder.ReadMessage (
-				ctxi.Request.InputStream, maxSizeOfHeaders, ctxi.Request.ContentType);
+            Message msg;
+            try {
+                msg = Encoder.ReadMessage (
+                    ctxi.Request.InputStream, maxSizeOfHeaders, ctxi.Request.ContentType);
+            }
+            catch (System.Xml.XmlException ex) {
+                msg = Message.CreateMessage(MessageVersion.Soap12, new FaultCode("Invalid SOAP namespace"), "was passed an invalid SOAP namespace", new object(), "Use correct namespace xmlns:soapenv=http://www.w3.org/2003/05/soap-envelope");
+                return msg;
+            }
 #endif
 
 			if (MessageVersion.Envelope.Equals (EnvelopeVersion.Soap11) ||
