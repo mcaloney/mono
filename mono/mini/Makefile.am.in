@@ -97,13 +97,15 @@ boehm_static_libraries = libmini-static.la $(static_libs)
 boehm_binaries  = mono-boehm
 endif
 
+# @clm: For IQ builds, we never want to use libmonoboehm
 #The mono uses sgen, while libmono remains boehm
 if SUPPORT_SGEN
 mono_bin_suffix = sgen
+libmono_suffix = sgen
 else
 mono_bin_suffix = boehm
-endif
 libmono_suffix = boehm
+endif
 
 if DISABLE_EXECUTABLES
 else
